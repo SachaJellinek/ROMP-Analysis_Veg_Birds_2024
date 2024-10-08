@@ -48,6 +48,7 @@ describe(sitedata)
 beltdata24$sitetype <- sitedata$'Site_type'[match(beltdata24$'WptID', sitedata$'WptID')]
 # bring in site pair into beltdata dataframe
 beltdata24$pair <- sitedata$'Target_WptID'[match(beltdata24$'WptID', sitedata$'WptID')]
+beltdata24$catchment <- sitedata$'Catchment'[match(beltdata24$'WptID', sitedata$'WptID')]
 #beltdata$visit <- visitdata$'Visit_number'[match(beltdata$'VisitID', visitdata$'VisitID')]
 beltdata24$origin <- floravic$'ORIGIN'[match(beltdata24$'Sp_name', floravic$'SCI_NAME')]
 beltdata24 <- mutate(beltdata24, 
@@ -79,19 +80,18 @@ missing_types <- filter(beltdata24, !complete.cases(beltdata24$type))
 listed_type_dead <- beltdata24 %>% filter(type=="dead")
 #writexl::write_xlsx(listed_type_dead, '~/uomShare/wergProj/W12 - Revegetation/ROMP surveys/2024_25 outputs/listed_type_dead.xlsx')
 
-#### Q1/2a. NATIVE TREE AND SHRUB Richness ----
-
 # Count of sites with number of belt transects
-count_belt <- beltdata24 %>% group_by(site, Site_ID, visit, sitetype, belt) %>% count()
-belt_by_visit <- count_belt %>% group_by(site, Site_ID, visit) %>% count(visit)
+count_belt <- beltdata24 %>% group_by(site, Site_ID, catchment, visit, sitetype, belt) %>% count()
+belt_by_visit <- count_belt %>% group_by(site, Site_ID, catchment, visit) %>% count(visit)
 belt_by_visit
 site_visit <- belt_by_visit %>% group_by(visit) %>% count(visit)
-type_visit <- count_belt %>% group_by(site, Site_ID, visit, sitetype) %>% count(visit)
-type_visit <- type_visit %>% group_by(visit, sitetype) %>% count(visit)
-
-#writexl::write_xlsx(belt_by_visit, '~/uomShare/wergProj/W12 - Revegetation/ROMP surveys/2024_25 outputs/belt_by_visit.xlsx')
+type_visit <- count_belt %>% group_by(site, Site_ID, catchment, visit, sitetype) %>% count(visit)
+type_visit <- type_visit %>% group_by(visit, catchment, sitetype) %>% count(visit)
+writexl::write_xlsx(type_visit, '~/uomShare/wergProj/W12 - Revegetation/ROMP surveys/2024_25 outputs/type_visit.xlsx')
 count_belt_2 <- beltdata24 %>% group_by(visit, site) %>% count(site)
 count_belt_3 <- count_belt_2 %>% group_by(site)%>% count(site)
+
+#### Q1/2a. NATIVE TREE AND SHRUB Richness ----
 
 beltdata24 <- beltdata24 %>% filter(!is.na(site))
 beltdata24 <- beltdata24 %>% replace_na(list(dead = 0))
