@@ -28,16 +28,16 @@ library(tidyverse)
 setwd("~/uomShare/wergProj/W12 - Revegetation/ROMP surveys") # change to match path on your computer
 
 # load data
-sitedata <- read_xlsx("ROMP_data_v3_20240718_SP.xlsx", sheet = "Site_details")
-#beltdata_update <- read_xlsx("ROMP_data_v3_20240715_SP.xlsx", sheet = "Belt_trans_species_update")
-beltdata24 <- read_xlsx("ROMP_data_v3_20240718_SP.xlsx", sheet = "Belt_trans_species")
-#heightdata <- read_xlsx("ROMP_data_v3_20240715_SP.xlsx", sheet = "Tree Heights")
-#dbhdata <- read_xlsx("ROMP_data_v3_20240715_SP.xlsx", sheet = "DBH")
-stratadata<- read_xlsx("ROMP_data_v3_20240718_SP.xlsx", sheet = "Structure_poll")
-canopydata <- read_xlsx("ROMP_data_v3_20240718_SP.xlsx", sheet = "Canopy")
-quadratdata24 <- read_xlsx("ROMP_data_v3_20240718_SP.xlsx", sheet = "Cover_estimates")
-visitdata <- read_xlsx("ROMP_data_v3_20240718_SP.xlsx", sheet = "iVisit")
-floravic <- read_excel("ROMP_data_v3_20240718_SP.xlsx", sheet = "Flora_vic", col_types = "text")
+sitedata <- read_xlsx("ROMP_data_v4_05092024.xlsx", sheet = "Site_details")
+#beltdata_update <- read_xlsx("ROMP_data_v4_05092024.xlsx", sheet = "Belt_trans_species_update")
+beltdata24 <- read_xlsx("ROMP_data_v4_05092024.xlsx", sheet = "Belt_trans_species")
+#heightdata <- read_xlsx("ROMP_data_v4_05092024.xlsx", sheet = "Tree Heights")
+#dbhdata <- read_xlsx("ROMP_data_v4_05092024.xlsx", sheet = "DBH")
+stratadata<- read_xlsx("ROMP_data_v4_05092024.xlsx", sheet = "Structure_poll")
+canopydata <- read_xlsx("ROMP_data_v4_05092024.xlsx", sheet = "Canopy")
+quadratdata24 <- read_xlsx("ROMP_data_v4_05092024.xlsx", sheet = "Cover_estimates")
+visitdata <- read_xlsx("ROMP_data_v4_05092024.xlsx", sheet = "iVisit")
+floravic <- read_excel("ROMP_data_v4_05092024.xlsx", sheet = "Flora_vic", col_types = "text")
 as.numeric(floravic$TAXON_ID)
 
 str(quadratdata24)
@@ -51,9 +51,10 @@ beltdata24$pair <- sitedata$'Target_WptID'[match(beltdata24$'WptID', sitedata$'W
 beltdata24$catchment <- sitedata$'Catchment'[match(beltdata24$'WptID', sitedata$'WptID')]
 #beltdata$visit <- visitdata$'Visit_number'[match(beltdata$'VisitID', visitdata$'VisitID')]
 beltdata24$origin <- floravic$'ORIGIN'[match(beltdata24$'Sp_name', floravic$'SCI_NAME')]
+beltdata24$Month_Yr <- format(as.Date(beltdata24$Date), "%Y-%m")
 beltdata24 <- mutate(beltdata24, 
                      origin = ifelse(origin == "Native but some stands may be alien", "Native", origin)) 
-beltdata24 <- beltdata24 %>%
+ROMPbeltdata24 <- beltdata24 %>%
   rename(site = 'WptID',
          species = 'Sp_name',
          type = 'Type (reveg, existing, recruit)',
@@ -63,49 +64,49 @@ beltdata24 <- beltdata24 %>%
          belt = 'Belt_ID')
 
 # identify factors
-beltdata24$site <- as.factor(beltdata24$site)
-beltdata24$species <- as.factor(beltdata24$species)
-beltdata24$origin <- as.factor(beltdata24$origin)
-beltdata24$sitetype <- as.factor(beltdata24$sitetype)
-beltdata24$pair <- as.factor(beltdata24$pair)
-describeBy(beltdata24, beltdata24$sitetype)
+ROMPbeltdata24$site <- as.factor(ROMPbeltdata24$site)
+ROMPbeltdata24$species <- as.factor(ROMPbeltdata24$species)
+ROMPbeltdata24$origin <- as.factor(ROMPbeltdata24$origin)
+ROMPbeltdata24$sitetype <- as.factor(ROMPbeltdata24$sitetype)
+ROMPbeltdata24$pair <- as.factor(ROMPbeltdata24$pair)
+describeBy(ROMPbeltdata24, ROMPbeltdata24$sitetype)
 
 # Check species without any records
-missing_val <- beltdata24 %>% filter(alive==0, dead==0)
+missing_val <- ROMPbeltdata24 %>% filter(alive==0, dead==0)
 #writexl::write_xlsx(missing_val, '~/uomShare/wergProj/W12 - Revegetation/ROMP surveys/2024_25 outputs/missing_val.xlsx')
 # Check which columns have missing values
-sapply(beltdata24, function(x) sum(is.na(x)))
-missing_types <- filter(beltdata24, !complete.cases(beltdata24$type))
+sapply(ROMPbeltdata24, function(x) sum(is.na(x)))
+missing_types <- filter(ROMPbeltdata24, !complete.cases(ROMPbeltdata24$type))
 #writexl::write_xlsx(missing_types, '~/uomShare/wergProj/W12 - Revegetation/ROMP surveys/2024_25 outputs/missing_types.xlsx')
-listed_type_dead <- beltdata24 %>% filter(type=="dead")
+listed_type_dead <- ROMPbeltdata24 %>% filter(type=="dead")
 #writexl::write_xlsx(listed_type_dead, '~/uomShare/wergProj/W12 - Revegetation/ROMP surveys/2024_25 outputs/listed_type_dead.xlsx')
 
 # Count of sites with number of belt transects
-count_belt <- beltdata24 %>% group_by(site, Site_ID, catchment, visit, sitetype, belt) %>% count()
-belt_by_visit <- count_belt %>% group_by(site, Site_ID, catchment, visit) %>% count(visit)
+count_belt <- ROMPbeltdata24 %>% group_by(Month_Yr, site, Site_ID, catchment, visit, sitetype, belt) %>% count()
+belt_by_visit <- count_belt %>% group_by(Month_Yr, site, Site_ID, catchment, visit) %>% count(visit)
 belt_by_visit
 site_visit <- belt_by_visit %>% group_by(visit) %>% count(visit)
-type_visit <- count_belt %>% group_by(site, Site_ID, catchment, visit, sitetype) %>% count(visit)
-type_visit <- type_visit %>% group_by(visit, catchment, sitetype) %>% count(visit)
+type_visit <- count_belt %>% group_by(Month_Yr, site, Site_ID, catchment, visit, sitetype) %>% count(visit)
+type_visit <- type_visit %>% group_by(Month_Yr, visit, catchment, sitetype) %>% count(visit)
 writexl::write_xlsx(type_visit, '~/uomShare/wergProj/W12 - Revegetation/ROMP surveys/2024_25 outputs/type_visit.xlsx')
-count_belt_2 <- beltdata24 %>% group_by(visit, site) %>% count(site)
+count_belt_2 <- ROMPbeltdata24 %>% group_by(visit, site) %>% count(site)
 count_belt_3 <- count_belt_2 %>% group_by(site)%>% count(site)
 
 #### Q1/2a. NATIVE TREE AND SHRUB Richness ----
 
-beltdata24 <- beltdata24 %>% filter(!is.na(site))
-beltdata24 <- beltdata24 %>% replace_na(list(dead = 0))
-beltdata24 <- beltdata24 %>% replace_na(list(alive = 0))
-beltdata24 <- beltdata24 %>% mutate(count= alive + dead)
+ROMPbeltdata24 <- ROMPbeltdata24 %>% filter(!is.na(site))
+ROMPbeltdata24 <- ROMPbeltdata24 %>% replace_na(list(dead = 0))
+ROMPbeltdata24 <- ROMPbeltdata24 %>% replace_na(list(alive = 0))
+ROMPbeltdata24 <- ROMPbeltdata24 %>% mutate(count= alive + dead)
 
-beltdata24 <- filter(beltdata24, species != 'Unknown')
-beltdata24 <- filter(beltdata24, species != 'Nil')
+ROMPbeltdata24 <- filter(ROMPbeltdata24, species != 'Unknown')
+ROMPbeltdata24 <- filter(ROMPbeltdata24, species != 'Nil')
 
 #beltdata %>% filter_at(vars(Sp_name), any_vars(. %in% c("(?i)^Allocasuarina"))) 
 #belt1 <- beltdata %>% filter_at(vars(Sp_name),select(matches("^Allocasuarina")))
 
-count_spabun <- beltdata24 %>% group_by(site, sitetype, species, origin) %>% summarise(sumofalive = sum(alive))
-count_spabun2 <- beltdata24 %>% group_by(sitetype, species, origin) %>% summarise(sumofalive = sum(alive))
+count_spabun <- ROMPbeltdata24 %>% group_by(site, sitetype, species, origin) %>% summarise(sumofalive = sum(alive))
+count_spabun2 <- ROMPbeltdata24 %>% group_by(sitetype, species, origin) %>% summarise(sumofalive = sum(alive))
 #Calculate overall species richness
 count_sprich <- count_spabun2 %>% group_by(sitetype, origin) %>% summarize(richness=n())
 ggplot(count_sprich, aes(x = sitetype, y = richness, fill = origin)) +
@@ -147,7 +148,7 @@ ggplot(data=mean_sprichCI, aes(x = reorder(sitetype, -mean.rich),y=mean.rich,fil
   theme(axis.text.x = element_text(angle = 45,vjust=0.5))
 
 # Mean species richness by origin and visit
-count_spabunVisit <- beltdata24 %>% group_by(site, sitetype, visit, species, origin) %>% summarise(sumofalive = sum(alive))
+count_spabunVisit <- ROMPbeltdata24 %>% group_by(site, sitetype, visit, species, origin) %>% summarise(sumofalive = sum(alive))
 mean_sprichVisit <- count_spabunVisit %>% 
   group_by(site, sitetype, visit, origin) %>% summarize(richness=n())
 mean_sprichVisit <- tidyr::unite(mean_sprichVisit,"vis_orig",visit, origin,remove = F)
@@ -219,7 +220,7 @@ Surv_yeardiff1 <- Surv_yeardiff %>% filter(filterout==5)
 
 #Surv_yeardiff1$visit <- as.factor(Surv_yeardiff1$visit)
 
-survsum <- Surv_yeardiff %>% mutate(percent=alive/total)
+survsum <- Surv_yeardiff1 %>% mutate(percent=alive/total)
 mean_survSE <- survsum%>% 
   group_by(visit)%>%
   summarise(mean = mean(percent),num_obs=n(),sum_surv=sum(percent),
@@ -279,7 +280,7 @@ mean_survSE <- Surv_yeardiff%>%
 # Joe code - create summary of species per sitetype by no of sites
 # Using visit 2 data - Post reveg
 
-speciessummarybysite <- beltdata24 %>%
+speciessummarybysite <- ROMPbeltdata24 %>%
   group_by(species, visit, origin, sitetype, site) %>%
   summarise(noofstems = sum(count))
 
